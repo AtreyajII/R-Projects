@@ -1,0 +1,212 @@
+install.packages(c("cowplot", "googleway","ggplot2","ggrepel","ggspatial","libwgeom","sf","rnaturalearth","rnaturalearthdata"))
+library("ggplot2")
+library("sf")
+theme_set(theme_bw())
+
+library("rnaturalearth")
+library("rnaturalearthdata")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+class(world)
+
+#Basic plotting
+ggplot(data = world) +
+  geom_sf()
+
+#title, subtitle
+ggplot(data = world) +
+  geom_sf() +
+  xlab("Longitude") + ylab("Latitude") +
+  ggtitle("World Map", subtitle = paste0("(",length(unique(world$name)),"countries"))
+
+#Map color - geom_sf
+ggplot(data = world) +
+  geom_sf(color = "black", fill = "lightblue")
+
+#Map better color
+ggplot(data = world) +
+  geom_sf(aes(fill = pop_est)) +
+  scale_fill_viridis_c(option = "plasma", trans = "sqrt")
+
+########Projection and extent
+ggplot(data = world) +
+  geom_sf() +
+  coord_sf(crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs ")
+#OR
+ggplot(data = world) +
+  geom_sf()+
+  coord_sf(crs = st_crs(4326))
+#OR
+ggplot(data = world)+
+  geom_sf()+
+  coord_sf(xlim = c(-61.9, 10.08), ylim = c(-61.44, 10.41), expand = FALSE)
+#OR
+ggplot(data = world)+
+  geom_sf()+
+  coord_sf(xlim=c(-10.67,34.5),ylim=c(31.55,71.05), expand = FALSE)
+#OR
+ggplot(data = world)+
+  geom_sf()+
+  coord_sf(xlim=c(108.4,37.6), ylim=c(-150.7,97.25), expand = FALSE)
+
+#Scale bar and North arrow
+#America - Mexico
+library("ggspatial") #vcd # ggsn, #prettymaper
+ggplot(data = world)+
+  geom_sf()+
+  annotation_scale(location = "bl", width_hint = 0.5)+
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.75, "in"), pad_y = unit(0.5,"in"),
+                         style = north_arrow_fancy_orienteering) +
+  coord_sf(xlim=c(-102.15,-74.12), ylim = c(7.65,33.97))
+
+#England
+ggplot(data = world)+
+  geom_sf()+
+  annotation_scale(location = "bl", width_hint = 0.5)+
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.1,"in"),
+                         style = north_arrow_nautical) + #north_arrow_minimal
+  coord_sf(xlim=c(-10.67,34.5),ylim=c(31.55,71.05))
+
+#Name in the map
+library("sf")
+world_points <- st_centroid(world)
+world_points <- cbind(world, st_coordinates(st_centroid(world$geometry)))
+
+install.packages("spData")
+library(spData)
+
+world_points <- cbind(spData::world, st_coordinates(st_centroid(spData::world$geom)))
+names(world_points) [names(world_points) == "name_long"] <-"name"
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_text(data = world_points, aes(x=X, y=Y, label=name),
+            color = "orange", fontface = "bold", check_overlap = FALSE) +
+  annotate(geom = "text", x = -90, y=26, label = "Gulf Of mexico",
+           fontface = "italic", color = "blue", size = 6) +
+  coord_sf(xlim=c(-102.15,-74.12), ylim = c(7.65,33.97))
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_text(data = world_points, aes(x=X, y=Y, label=name),
+            color = "orange", fontface = "bold", check_overlap = FALSE) +
+  annotate(geom = "text", x = 10, y=6, label = "Europe",
+           fontface = "italic", color = "blue", size = 6) +
+  coord_sf(xlim=c(-10.67,34.5),ylim=c(31.55,71.05))
+
+#Combination - Mexico
+ggplot(data = world)+
+  geom_sf(fill = "white")+
+  geom_text(data = world_points, aes(x=X, y=Y, label=name),
+color = "darkblue", fontface = "bold", check_overlap = FALSE) + 
+  annotate(geom = "text", x = -90, y=26, label = "Gulf Of mexico",
+           fontface = "italic", color = "grey22", size = 6) +
+  annotation_scale(location = "bl", width_hint = 0.5)+
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.1,"in"),
+                         style = north_arrow_nautical) + 
+  coord_sf(xlim=c(-102.15,-74.12), ylim = c(7.65,33.97), expand = FALSE) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle("Map of Gulf of Mexico") +
+  theme(panel.grid.major = element_line(color = grey(.5),
+                                        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "aliceblue"))
+
+#Combination - Europe
+ggplot(data = world)+
+  geom_sf(fill = "white")+
+  geom_text(data = world_points, aes(x=X, y=Y, label=name),
+            color = "darkblue", fontface = "bold", check_overlap = FALSE) + 
+  annotate(geom = "text", x = -90, y=26, label = "Europe",
+           fontface = "italic", color = "grey22", size = 6) +
+  annotation_scale(location = "bl", width_hint = 0.5)+
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.1,"in"),
+                         style = north_arrow_nautical) + 
+  coord_sf(xlim=c(180.4,37.6), ylim=c(-70.7,80.25), expand = FALSE) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle("Map of Sub -Terranian India") +
+  theme(panel.grid.major = element_line(color = grey(.5),
+                                        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "aliceblue"))
+
+ggsave("mapMexico.pdf")
+ggsave("mapMexico_web.png", width = 6, height = 6, dpi = "screen")
+######################################################################
+#Field points
+(sites <- data.frame(longitude = c(-80.144005,-80.109), 
+                     latitude = c(26.479005, 26.83)))
+ggplot(data = world) +
+  geom_sf()+
+  geom_point(data = sites, aes(x = longitude, y = latitude), size = 4,
+             shape = 24, fill = "red")+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+(sites <- st_as_sf(sites, coords = c("longitude", "latitude"),
+                   crs = 4326, agr = "constant"))
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = sites, size = 4, shape = 23, fill = "red")+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+install.packages("maps")
+library("maps")
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+head(states)
+
+sf::sf_use_s2(FALSE)
+states <- cbind(states,st_coordinates(st_centroid(states)),check = FALSE)
+
+
+library("tools")                
+states$ID <- toTitleCase(states$ID)
+head(states)
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = states, fill = NA) +
+  geom_text(data = states, aes(X, Y, label = ID), size = 5)+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+states$nudge_y <- -1
+states$nudge_y[states$ID == "Florida"] <- 0.5
+states$nudge_y[states$ID == "South Carolina"] <- -1.5
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = states, fill = NA) +
+  geom_text(data = states, aes(X, Y, label = ID), size = 5, 
+            fontface = "bold",
+            nudge_y = states$nudge_y)+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+#Label
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = states, fill = NA) +
+  geom_label(data = states, aes(X, Y, label = ID), size = 5, 
+            fontface = "bold",
+            nudge_y = states$nudge_y)+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+install.packages("lwgeom")
+library(lwgeom)
+counties <- st_as_sf(map("county", plot = FALSE, fill = TRUE))
+counties <- subset(counties, grepl("florida", counties$ID))
+counties$area <- as.numeric(st_area(counties))
+head(counties)
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = counties, fill = NA, color = gray(.5))+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
+
+ggplot(data = world)+
+  geom_sf()+
+  geom_sf(data = counties, aes(fill = area))+
+  scale_fill_viridis_c(trans = "sqrt", alpha = .9)+
+  coord_sf(xlim = c(-88,-78), ylim = c(24.5,33), expand = FALSE)
